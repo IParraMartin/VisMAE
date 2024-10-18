@@ -1,0 +1,23 @@
+# Training config
+
+seed: 42
+
+model_config:
+  in_dims: 1
+  out_dims: 1
+  kernel_size: 3
+  activation: 'leaky'
+  alpha: 0.1
+
+audio_dir: '/Users/inigoparra/Desktop/Datasets/ESC-50-master/audio'
+target_sr: 8000
+sample_len: 32000
+
+epochs: 500
+batch_size: 32
+lr: 0.001
+beta_1: 0.90
+beta_2: 0.99
+weight_decay: 0.01
+
+log: True

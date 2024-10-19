@@ -2,7 +2,7 @@
 
 seed: 42
 
-log: False
+log: True
 
 model_config:
   in_dims: 1
@@ -11,13 +11,13 @@ model_config:
   activation: 'leaky'
   alpha: 0.1
 
-audio_dir: '/Users/inigoparra/Desktop/speech'
+audio_dir: '/Users/inigoparra/Desktop/Datasets/speech'
 original_sr: 44100
 target_resample: 16000
 sample_len: 64000
 
 spectrogram_config:
-  target_sr: 16000
+  sample_rate: 16000
   n_fft: 256
   hop_length: 64
   n_mels: 64
@@ -27,6 +27,7 @@ spectrogram_config:
   mel_scale: 'slaney'
   pad_mode: 'reflect'
 
+mask_size: 50
 epochs: 500
 batch_size: 32
 lr: 0.001

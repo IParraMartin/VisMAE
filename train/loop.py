@@ -39,7 +39,7 @@ def mask_spectrogram(spectrogram, max_mask_size=50, deterministic=False, seed=42
     return out_spectrogram
 
 
-def train(device, model, epochs, train_dataloader, val_dataloader, criterion, optim, log, save_epochs, save_path):
+def train(device, model, epochs, train_dataloader, val_dataloader, criterion, optim, mask_size, log, save_epochs, save_path):
 
     print(f'\nLogging to wandb: {log}')
     if log:
@@ -60,7 +60,7 @@ def train(device, model, epochs, train_dataloader, val_dataloader, criterion, op
         train_steps = 0
         for idx_batch, signal in enumerate(train_dataloader):
             original_signal = signal.to(device)
-            masked_signal = mask_spectrogram(original_signal, max_mask_size=30, deterministic=False)
+            masked_signal = mask_spectrogram(original_signal, max_mask_size=mask_size, deterministic=False)
             out, _ = model(masked_signal)
             loss = criterion(out, original_signal)
             total_train_loss += loss.item()
@@ -87,7 +87,7 @@ def train(device, model, epochs, train_dataloader, val_dataloader, criterion, op
         total_val_loss = 0.0
         for idx_batch, signal in enumerate(val_dataloader):
             original_signal = signal.to(device)
-            masked_signal = mask_spectrogram(original_signal, max_mask_size=30, deterministic=True)
+            masked_signal = mask_spectrogram(original_signal, max_mask_size=mask_size, deterministic=True)
             out, _ = model(masked_signal)
             loss = criterion(out, original_signal)
             total_val_loss += loss.item()
@@ -117,7 +117,7 @@ def train(device, model, epochs, train_dataloader, val_dataloader, criterion, op
             })
 
         if epoch % save_epochs == 0:
-            save_checkpoints(model=model, model_name='melmae', save_to=save_path)
+            save_checkpoints(model=model, model_name=f'melmae_{epoch+1}', save_to=save_path)
 
     print('Finished Training.')
 

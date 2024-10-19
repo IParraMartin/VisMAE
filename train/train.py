@@ -33,7 +33,7 @@ transforms = Compose([
 
 dataset = AudioDataset(
     data_dir=config['audio_dir'],
-    target_sr=config['target_sr'],
+    target_sr=config['target_resample'],
     sample_len=config['sample_len'],
     transformation=transforms
 )
@@ -62,6 +62,7 @@ train(
     val_dataloader=val_dataloader,
     criterion=criterion,
     optim=optim,
+    mask_size=config['mask_size'],
     log=config['log'],
     save_epochs=config['save_epochs'],
     save_path=config['save_path'],

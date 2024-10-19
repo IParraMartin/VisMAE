@@ -117,7 +117,7 @@ if __name__ == "__main__":
         transformation=transforms
     )
 
-    original = dataset[6]
+    original = dataset[10]
     print(original.shape)
 
     original = original.unsqueeze(1)

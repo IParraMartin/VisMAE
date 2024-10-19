@@ -20,4 +20,4 @@ beta_1: 0.90
 beta_2: 0.99
 weight_decay: 0.01
 
-log: True
+log: False

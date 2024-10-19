@@ -8,7 +8,6 @@ import torch
 import torch.nn as nn
 from torch.nn.functional import pad
 
-import random
 import sys
 import os
 sys.path.append(os.curdir)
@@ -84,17 +83,6 @@ class AudioDataset(Dataset):
 
 if __name__ == "__main__": 
 
-    def mask_spectrogram(spectrogram, max_mask_size=70, deterministic=True, seed=42):
-        batch, C, freq_bins, time_frames = spectrogram.shape
-        out_spectrogram = spectrogram.clone()
-        for i in range(batch):
-            if deterministic:
-                random.seed(seed + i)
-            mask_size = random.randint(1, max_mask_size)
-            time_start = random.randint(0, time_frames - mask_size)
-            out_spectrogram[:, :, :, time_start:time_start+mask_size] = float('inf')
-        return out_spectrogram
-
     audio_dir = '/Users/inigoparra/Desktop/Datasets/speech'
 
     transforms = Compose([
@@ -110,6 +98,8 @@ if __name__ == "__main__":
         torchaudio.transforms.AmplitudeToDB()
     ])
 
+    mask = torchaudio.transforms.TimeMasking(time_mask_param=150, p=1.0)
+
     dataset = AudioDataset(
         data_dir=audio_dir,
         target_sr=16000,
@@ -122,7 +112,7 @@ if __name__ == "__main__":
     original = original.unsqueeze(1)
     print(f'Original Shape: {original.shape}')
     autoencoder = VisResMAE(in_dims=1, out_dims=1, kernel_size=3, activation='leaky', alpha=0.1)
-    masked = mask_spectrogram(original, max_mask_size=60, deterministic=False)
+    masked = mask(original.clone())
     x, emb = autoencoder(original)
     print(f'Embedding Shape: {emb.shape}')
     print(f'Predicted Shape: {x.shape}')

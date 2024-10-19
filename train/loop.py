@@ -1,4 +1,5 @@
 import torch
+import torchaudio
 
 import wandb
 import matplotlib.pyplot as plt
@@ -13,7 +14,7 @@ sys.path.append(os.curdir)
 
 
 def tensor_to_image(tensor):
-    fig, ax = plt.subplots(figsize=(6, 4))
+    fig, ax = plt.subplots(figsize=(12, 4))
     ax.imshow(tensor, aspect='auto', origin='lower')
     ax.axis('off')
     buf = io.BytesIO()
@@ -26,33 +27,9 @@ def save_checkpoints(model, model_name, save_to):
    os.makedirs(os.path.join(save_to, 'checkpoints'), exist_ok=True)
    torch.save(model.state_dict(), os.path.join(save_to, 'checkpoints', f'{model_name}.pt'))
 
-def squared_mask_spectrogram(spectrogram, max_mask_size=50, deterministic=False, seed=42):
-    batch, C, freq_bins, time_frames = spectrogram.shape
-    max_possible_mask_size = min(max_mask_size, freq_bins, time_frames)
-    out_spectrogram = spectrogram.clone()
-    for i in range(batch):
-        if deterministic:
-            random.seed(seed + i)
-        mask_size = random.randint(1, max_possible_mask_size)
-        freq_start = random.randint(0, freq_bins - mask_size)
-        time_start = random.randint(0, time_frames - mask_size)
-        out_spectrogram[:, :, freq_start:freq_start+mask_size, time_start:time_start+mask_size] = 0
-    return out_spectrogram
+mask = torchaudio.transforms.TimeMasking(time_mask_param=150, p=1.0)
 
-
-def window_mask_spectrogram(spectrogram, max_mask_size=50, deterministic=False, seed=42):
-    batch, C, F, time_frames = spectrogram.shape
-    out_spectrogram = spectrogram.clone()
-    for i in range(batch):
-        if deterministic:
-            random.seed(seed + i)
-        mask_size = random.randint(1, max_mask_size)
-        time_start = random.randint(0, time_frames - mask_size)
-        out_spectrogram[:, :, :, time_start:time_start+mask_size] = float('inf')
-    return out_spectrogram
-
-
-def train(device, model, epochs, train_dataloader, val_dataloader, criterion, optim, mask_size, log, save_epochs, save_path):
+def train(device, model, epochs, train_dataloader, val_dataloader, criterion, optim, log, save_epochs, save_path):
 
     print(f'\nLogging to wandb: {log}')
     if log:
@@ -73,7 +50,7 @@ def train(device, model, epochs, train_dataloader, val_dataloader, criterion, op
         train_steps = 0
         for idx_batch, signal in enumerate(train_dataloader):
             original_signal = signal.to(device)
-            masked_signal = window_mask_spectrogram(original_signal, max_mask_size=mask_size, deterministic=False)
+            masked_signal = mask(original_signal.clone())
             out, _ = model(masked_signal)
             loss = criterion(out, original_signal)
             total_train_loss += loss.item()
@@ -100,7 +77,7 @@ def train(device, model, epochs, train_dataloader, val_dataloader, criterion, op
         total_val_loss = 0.0
         for idx_batch, signal in enumerate(val_dataloader):
             original_signal = signal.to(device)
-            masked_signal = window_mask_spectrogram(original_signal, max_mask_size=mask_size, deterministic=True)
+            masked_signal = mask(original_signal.clone())
             out, _ = model(masked_signal)
             loss = criterion(out, original_signal)
             total_val_loss += loss.item()

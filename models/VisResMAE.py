@@ -112,8 +112,7 @@ class VisResMAE(nn.Module):
 
         if x.shape[-2:] != self.in_shape[-2:]:
             x = F.interpolate(x, size=self.in_shape[-2:])
-            print(f'Warning: out signal interpolated. Risk of possible artifacts in the reshaping of the tensor.
-                  Try different out padding in the transposed convolution.')
+            print('Warning: out signal interpolated. Risk of possible artifacts in the reshaping of the tensor. Try different out padding in the transposed convolution.')
         
         return x, emb
     

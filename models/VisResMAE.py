@@ -46,7 +46,7 @@ class Decoder(nn.Module):
     def __init__(self, out_dims, kernel_size, activation):
         super().__init__()
 
-        self.conv_1 = nn.ConvTranspose2d(in_channels=32, out_channels=16, kernel_size=kernel_size, stride=2, padding=1, output_padding=1)
+        self.conv_1 = nn.ConvTranspose2d(in_channels=32, out_channels=16, kernel_size=kernel_size, stride=2, padding=1, output_padding=(1, 0))
         self.conv_2 = nn.ConvTranspose2d(in_channels=16, out_channels=8, kernel_size=kernel_size, stride=2, padding=1, output_padding=(1, 0))
         self.out_layer = nn.Conv2d(in_channels=8, out_channels=out_dims, kernel_size=7, stride=1, padding=3)
         
@@ -109,9 +109,12 @@ class VisResMAE(nn.Module):
         emb = self.emb(x)
         emb += identity
         x = self.dec(emb)
+
         if x.shape[-2:] != self.in_shape[-2:]:
             x = F.interpolate(x, size=self.in_shape[-2:])
-            print('Interpolated')
+            print(f'Warning: out signal interpolated. Risk of possible artifacts in the reshaping of the tensor.
+                  Try different out padding in the transposed convolution.')
+        
         return x, emb
     
     def initialize_weights(self, activation):

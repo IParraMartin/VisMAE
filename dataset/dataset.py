@@ -84,18 +84,18 @@ class AudioDataset(Dataset):
 
 if __name__ == "__main__": 
 
-    def mask_spectrogram(spectrogram, max_mask_size=50, deterministic=False, seed=42):
-        if deterministic:
-            random.seed(seed)
-        B, C, freq_bins, time_frames = spectrogram.shape
-        max_possible_mask_size = min(max_mask_size, freq_bins, time_frames)
-        mask_size = random.randint(1, max_possible_mask_size)
-        freq_start = random.randint(0, freq_bins - mask_size)
-        time_start = random.randint(0, time_frames - mask_size)
-        spectrogram[:, :, freq_start:freq_start+mask_size, time_start:time_start+mask_size] = 0
-        return spectrogram
+    def mask_spectrogram(spectrogram, max_mask_size=70, deterministic=True, seed=42):
+        batch, C, freq_bins, time_frames = spectrogram.shape
+        out_spectrogram = spectrogram.clone()
+        for i in range(batch):
+            if deterministic:
+                random.seed(seed + i)
+            mask_size = random.randint(1, max_mask_size)
+            time_start = random.randint(0, time_frames - mask_size)
+            out_spectrogram[:, :, :, time_start:time_start+mask_size] = float('inf')
+        return out_spectrogram
 
-    audio_dir = '/Users/inigoparra/Desktop/speech'
+    audio_dir = '/Users/inigoparra/Desktop/Datasets/speech'
 
     transforms = Compose([
         torchaudio.transforms.Resample(orig_freq=16000, new_freq=16000),
@@ -106,9 +106,6 @@ if __name__ == "__main__":
             n_mels=64,                 # Mel bands (128 is common for speech)
             f_min=80,                  # Capture low-frequency components like voice
             f_max=8000,                # Respect Nyquist limit at 8 kHz sample rate
-            norm='slaney',
-            mel_scale='slaney',
-            pad_mode='reflect'
         ),
         torchaudio.transforms.AmplitudeToDB()
     ])
@@ -121,12 +118,11 @@ if __name__ == "__main__":
     )
 
     original = dataset[10]
-    print(original.shape)
 
     original = original.unsqueeze(1)
     print(f'Original Shape: {original.shape}')
     autoencoder = VisResMAE(in_dims=1, out_dims=1, kernel_size=3, activation='leaky', alpha=0.1)
-    masked = mask_spectrogram(original, max_mask_size=50, deterministic=False)
+    masked = mask_spectrogram(original, max_mask_size=60, deterministic=False)
     x, emb = autoencoder(original)
     print(f'Embedding Shape: {emb.shape}')
     print(f'Predicted Shape: {x.shape}')
@@ -136,19 +132,25 @@ if __name__ == "__main__":
 
     plt.figure(figsize=(12, 6))
 
-    plt.subplot(1, 3, 1)
+    plt.subplot(4, 1, 1)
     plt.imshow(original.squeeze().detach().numpy(), cmap='inferno', origin='lower')
     plt.title('Mel Spectrogram - Original')
     plt.xlabel('Time')
     plt.ylabel('Mel Frequency')
 
-    plt.subplot(1, 3, 2)
+    plt.subplot(4, 1, 2)
+    plt.imshow(masked.squeeze().detach().numpy(), cmap='inferno', origin='lower')
+    plt.title('Masked Spectrogram - Original')
+    plt.xlabel('Time')
+    plt.ylabel('Mel Frequency')
+
+    plt.subplot(4, 1, 3)
     plt.imshow(x.squeeze().detach().numpy(), cmap='inferno', origin='lower')
     plt.title('Mel Spectrogram - Processed')
     plt.xlabel('Time')
     plt.ylabel('Mel Frequency')
 
-    plt.subplot(1, 3, 3)
+    plt.subplot(4, 1, 4)
     plt.imshow(emb.squeeze().detach().numpy(), cmap='inferno', origin='lower')
     plt.title('Latent Representation')
     plt.xlabel('Time')

@@ -26,16 +26,29 @@ def save_checkpoints(model, model_name, save_to):
    os.makedirs(os.path.join(save_to, 'checkpoints'), exist_ok=True)
    torch.save(model.state_dict(), os.path.join(save_to, 'checkpoints', f'{model_name}.pt'))
 
-def mask_spectrogram(spectrogram, max_mask_size=50, deterministic=False, seed=42):
-    if deterministic:
-        random.seed(seed)
-    B, C, freq_bins, time_frames = spectrogram.shape
+def squared_mask_spectrogram(spectrogram, max_mask_size=50, deterministic=False, seed=42):
+    batch, C, freq_bins, time_frames = spectrogram.shape
     max_possible_mask_size = min(max_mask_size, freq_bins, time_frames)
-    mask_size = random.randint(1, max_possible_mask_size)
-    freq_start = random.randint(0, freq_bins - mask_size)
-    time_start = random.randint(0, time_frames - mask_size)
     out_spectrogram = spectrogram.clone()
-    out_spectrogram[:, :, freq_start:freq_start+mask_size, time_start:time_start+mask_size] = 0
+    for i in range(batch):
+        if deterministic:
+            random.seed(seed + i)
+        mask_size = random.randint(1, max_possible_mask_size)
+        freq_start = random.randint(0, freq_bins - mask_size)
+        time_start = random.randint(0, time_frames - mask_size)
+        out_spectrogram[:, :, freq_start:freq_start+mask_size, time_start:time_start+mask_size] = 0
+    return out_spectrogram
+
+
+def window_mask_spectrogram(spectrogram, max_mask_size=50, deterministic=False, seed=42):
+    batch, C, F, time_frames = spectrogram.shape
+    out_spectrogram = spectrogram.clone()
+    for i in range(batch):
+        if deterministic:
+            random.seed(seed + i)
+        mask_size = random.randint(1, max_mask_size)
+        time_start = random.randint(0, time_frames - mask_size)
+        out_spectrogram[:, :, :, time_start:time_start+mask_size] = float('inf')
     return out_spectrogram
 
 
@@ -60,7 +73,7 @@ def train(device, model, epochs, train_dataloader, val_dataloader, criterion, op
         train_steps = 0
         for idx_batch, signal in enumerate(train_dataloader):
             original_signal = signal.to(device)
-            masked_signal = mask_spectrogram(original_signal, max_mask_size=mask_size, deterministic=False)
+            masked_signal = window_mask_spectrogram(original_signal, max_mask_size=mask_size, deterministic=False)
             out, _ = model(masked_signal)
             loss = criterion(out, original_signal)
             total_train_loss += loss.item()
@@ -87,7 +100,7 @@ def train(device, model, epochs, train_dataloader, val_dataloader, criterion, op
         total_val_loss = 0.0
         for idx_batch, signal in enumerate(val_dataloader):
             original_signal = signal.to(device)
-            masked_signal = mask_spectrogram(original_signal, max_mask_size=mask_size, deterministic=True)
+            masked_signal = window_mask_spectrogram(original_signal, max_mask_size=mask_size, deterministic=True)
             out, _ = model(masked_signal)
             loss = criterion(out, original_signal)
             total_val_loss += loss.item()

@@ -95,25 +95,28 @@ if __name__ == "__main__":
         spectrogram[:, :, freq_start:freq_start+mask_size, time_start:time_start+mask_size] = 0
         return spectrogram
 
-    audio_dir = '/Users/inigoparra/Desktop/Datasets/ESC-50-master/audio'
+    audio_dir = '/Users/inigoparra/Desktop/speech'
 
     transforms = Compose([
-        torchaudio.transforms.Resample(orig_freq=44100, new_freq=8000),
+        torchaudio.transforms.Resample(orig_freq=16000, new_freq=16000),
         torchaudio.transforms.MelSpectrogram(
-            sample_rate=8000,
+            sample_rate=16000,
             n_fft=256,                 # Small window for better temporal precision
             hop_length=64,             # High overlap to capture temporal structure
             n_mels=64,                 # Mel bands (128 is common for speech)
-            f_min=60,                  # Capture low-frequency components like voice
-            f_max=4000,                # Respect Nyquist limit at 8 kHz sample rate
+            f_min=80,                  # Capture low-frequency components like voice
+            f_max=8000,                # Respect Nyquist limit at 8 kHz sample rate
+            norm='slaney',
+            mel_scale='slaney',
+            pad_mode='reflect'
         ),
         torchaudio.transforms.AmplitudeToDB()
     ])
 
     dataset = AudioDataset(
         data_dir=audio_dir,
-        target_sr=8000,
-        sample_len=32000,
+        target_sr=16000,
+        sample_len=64000,
         transformation=transforms
     )
 
@@ -123,8 +126,9 @@ if __name__ == "__main__":
     original = original.unsqueeze(1)
     print(f'Original Shape: {original.shape}')
     autoencoder = VisResMAE(in_dims=1, out_dims=1, kernel_size=3, activation='leaky', alpha=0.1)
-    masked = mask_spectrogram(original, max_mask_size=30, deterministic=False)
+    masked = mask_spectrogram(original, max_mask_size=50, deterministic=False)
     x, emb = autoencoder(original)
+    print(f'Embedding Shape: {emb.shape}')
     print(f'Predicted Shape: {x.shape}')
 
     emb_transform = nn.Conv2d(in_channels=32, out_channels=1, kernel_size=3, stride=1)

@@ -39,7 +39,7 @@ def mask_spectrogram(spectrogram, max_mask_size=50, deterministic=False, seed=42
     return out_spectrogram
 
 
-def train(device, model, epochs, train_dataloader, val_dataloader, criterion, optim, log):
+def train(device, model, epochs, train_dataloader, val_dataloader, criterion, optim, log, save_epochs, save_path):
 
     print(f'\nLogging to wandb: {log}')
     if log:
@@ -115,6 +115,9 @@ def train(device, model, epochs, train_dataloader, val_dataloader, criterion, op
                 'avg_train_loss': avg_train_loss,
                 'avg_train_loss': avg_val_loss
             })
+
+        if epoch % save_epochs == 0:
+            save_checkpoints(model=model, model_name='melmae', save_to=save_path)
 
     print('Finished Training.')
 

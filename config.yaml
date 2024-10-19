@@ -2,6 +2,8 @@
 
 seed: 42
 
+log: False
+
 model_config:
   in_dims: 1
   out_dims: 1
@@ -9,9 +11,21 @@ model_config:
   activation: 'leaky'
   alpha: 0.1
 
-audio_dir: '/Users/inigoparra/Desktop/Datasets/ESC-50-master/audio'
-target_sr: 8000
-sample_len: 32000
+audio_dir: '/Users/inigoparra/Desktop/speech'
+original_sr: 44100
+target_resample: 16000
+sample_len: 64000
+
+spectrogram_config:
+  target_sr: 16000
+  n_fft: 256
+  hop_length: 64
+  n_mels: 64
+  f_min: 80
+  f_max: 8000
+  norm: 'slaney'
+  mel_scale: 'slaney'
+  pad_mode: 'reflect'
 
 epochs: 500
 batch_size: 32
@@ -19,5 +33,7 @@ lr: 0.001
 beta_1: 0.90
 beta_2: 0.99
 weight_decay: 0.01
+save_epochs: 5
 
-log: False
+save_path: '/Users/inigoparra/Desktop/VisMAE'
+save_epochs: 20

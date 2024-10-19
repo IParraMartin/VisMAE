@@ -26,15 +26,8 @@ def make_deterministic(seed):
 make_deterministic(config['seed'])
 
 transforms = Compose([
-    torchaudio.transforms.Resample(orig_freq=44100, new_freq=config['target_sr']),
-    torchaudio.transforms.MelSpectrogram(
-        sample_rate=config['target_sr'],
-        n_fft=256,                          # Small window for better temporal precision
-        hop_length=64,                      # High overlap to capture temporal structure
-        n_mels=64,                          # Mel bands (128 is common for speech)
-        f_min=60,                           # Capture low-frequency components like voice
-        f_max=4000,                         # Respect Nyquist limit at 8 kHz sample rate
-    ),
+    torchaudio.transforms.Resample(orig_freq=config['original_sr'], new_freq=config['target_resample']),
+    torchaudio.transforms.MelSpectrogram(**config['spectrogram_config']),
     torchaudio.transforms.AmplitudeToDB()
 ])
 
@@ -69,5 +62,7 @@ train(
     val_dataloader=val_dataloader,
     criterion=criterion,
     optim=optim,
-    log=config['log']
+    log=config['log'],
+    save_epochs=config['save_epochs'],
+    save_path=config['save_path'],
 )

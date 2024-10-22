@@ -113,51 +113,7 @@ class AudiT(nn.Module):
         self.n_patches = n_patches
 
     def forward(self, x):
-        # Step 1: Patchify the input audio
-        x = self.patchify(x)
-        
-        # Step 2: Separate patches (excluding CLS token for encoding)
-        patches = x[:, 1:, :]
-        
-        # Step 3: Generate random mask
-        batch_size, n_patches, _ = patches.shape
-        num_mask = int(self.mask_ratio * n_patches)
-        rand_indices = torch.rand(batch_size, n_patches, device=x.device).argsort(dim=1)
-        mask_indices = rand_indices[:, :num_mask]
-        unmask_indices = rand_indices[:, num_mask:]
-        
-        # Step 4: Create masks
-        mask = torch.zeros(batch_size, n_patches, dtype=torch.bool, device=x.device)
-        mask.scatter_(1, mask_indices, True)
-        
-        # Step 5: Separate masked and unmasked patches
-        batch_indices = torch.arange(batch_size, device=x.device).unsqueeze(1)
-        unmasked_patches = patches[batch_indices, unmask_indices]
-        
-        # Step 6: Encode unmasked patches (without CLS token)
-        encoded = self.encoder(unmasked_patches)
-        
-        # Step 7: Prepare decoder input
-        mask_tokens = self.mask_token.expand(batch_size, num_mask, -1)
-        
-        # Prepare decoder input patches
-        decoder_input_patches = torch.zeros(batch_size, n_patches, patches.size(-1), device=x.device)
-        decoder_input_patches[batch_indices, unmask_indices] = encoded
-        decoder_input_patches[batch_indices, mask_indices] = mask_tokens
-        
-        # Add position embeddings (excluding CLS token embeddings)
-        decoder_input = decoder_input_patches + self.patchify.position_embeddings[:, 1:, :]
-
-        # Step 8: Decode to reconstruct
-        decoded = self.decoder(decoder_input, encoded)
-        
-        # Step 9: Apply prediction head
-        pred = self.decoder_pred(decoded)
-        
-        # Step 10: Calculate reconstruction loss
-        loss = F.mse_loss(pred[mask], patches[mask])
-
-        return loss, pred, mask, patches
+        pass
 
 
 if __name__ == "__main__":
@@ -193,9 +149,6 @@ if __name__ == "__main__":
         mask_ratio
     )
 
-    # Forward pass
-    loss, pred, mask, patches = model(x)
-    print(loss.item())
 
 
     def visualize_embeddings(tensor):

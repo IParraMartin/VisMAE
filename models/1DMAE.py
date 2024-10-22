@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import matplotlib.pyplot as plt
 import einops
 
 
@@ -22,7 +23,8 @@ class Patchify(nn.Module):
 
     def forward(self, x):
         cls_token = self.cls_token.expand(x.shape[0], -1, -1)
-        x = self.patcher(x).permute(0, 2, 1)
+        x = self.patcher(x)
+        x = einops.rearrange(x, 'B C L -> B L C')
         x = torch.cat([cls_token, x], dim=1)
         x = self.position_embeddings + x
         x = self.dropout(x)
@@ -71,4 +73,11 @@ if __name__ == "__main__":
     out = enc(dummy_in)
     print(out.shape)
 
-    print(enc)
+    patch = Patchify(512, 25, 1920, 0.2, 1)
+    dummy_in = torch.randn(4, 1, 48000)
+    x = patch(dummy_in)
+    print(x[0])
+    print(x.shape)
+
+
+

@@ -29,6 +29,7 @@ def save_checkpoints(model, model_name, save_to):
 
 mask = torchaudio.transforms.TimeMasking(time_mask_param=150, p=1.0)
 
+
 def train(device, model, epochs, train_dataloader, val_dataloader, criterion, optim, log, save_epochs, save_path):
 
     print(f'\nLogging to wandb: {log}')
@@ -61,7 +62,7 @@ def train(device, model, epochs, train_dataloader, val_dataloader, criterion, op
             optim.step()
             train_steps += 1
 
-            if (idx_batch + 1) % 1 == 0:
+            if (idx_batch + 1) % 5 == 0:
                 print(f'Epoch [{epoch+1}/{epochs}] - Train Step [{idx_batch+1}/{len(train_dataloader)}] - Loss: {loss.item():.3f}')
 
             if log:
@@ -75,26 +76,27 @@ def train(device, model, epochs, train_dataloader, val_dataloader, criterion, op
 
         model.eval()
         total_val_loss = 0.0
-        for idx_batch, signal in enumerate(val_dataloader):
-            original_signal = signal.to(device)
-            masked_signal = mask(original_signal.clone())
-            out, _ = model(masked_signal)
-            loss = criterion(out, original_signal)
-            total_val_loss += loss.item()
+        with torch.no_grad():
+            for idx_batch, signal in enumerate(val_dataloader):
+                original_signal = signal.to(device)
+                masked_signal = mask(original_signal.clone())
+                out, _ = model(masked_signal)
+                loss = criterion(out, original_signal)
+                total_val_loss += loss.item()
 
-            if (idx_batch + 1) % 1 == 0:
-                print(f'Epoch [{epoch+1}/{epochs}] - Validation Step [{idx_batch+1}/{len(val_dataloader)}] - Loss: {loss.item():.3f}')
-            
-            original_img = tensor_to_image(original_signal[0].squeeze().cpu().detach().numpy())
-            masked_img = tensor_to_image(masked_signal[0].squeeze().cpu().detach().numpy())
-            reconstructed_img = tensor_to_image(out[0].squeeze().cpu().detach().numpy())
+                if (idx_batch + 1) % 5 == 0:
+                    print(f'Epoch [{epoch+1}/{epochs}] - Validation Step [{idx_batch+1}/{len(val_dataloader)}] - Loss: {loss.item():.3f}')
+                
+                original_img = tensor_to_image(original_signal[0].squeeze().cpu().detach().numpy())
+                masked_img = tensor_to_image(masked_signal[0].squeeze().cpu().detach().numpy())
+                reconstructed_img = tensor_to_image(out[0].squeeze().cpu().detach().numpy())
 
-            if log:
-                wandb.log({
-                    'original_spectrogram': wandb.Image(original_img, caption='Original Spectrogram'),
-                    'masked_spectrogram': wandb.Image(masked_img, caption='Masked Spectrogram'),
-                    'reconstructed_spectrogram': wandb.Image(reconstructed_img, caption='Reconstructed Spectrogram'),
-                })
+                if log:
+                    wandb.log({
+                        'original_spectrogram': wandb.Image(original_img, caption='Original Spectrogram'),
+                        'masked_spectrogram': wandb.Image(masked_img, caption='Masked Spectrogram'),
+                        'reconstructed_spectrogram': wandb.Image(reconstructed_img, caption='Reconstructed Spectrogram'),
+                    })
 
         avg_val_loss = total_val_loss / len(val_dataloader)
         scheduler.step(avg_val_loss)
@@ -106,7 +108,7 @@ def train(device, model, epochs, train_dataloader, val_dataloader, criterion, op
                 'avg_train_loss': avg_val_loss
             })
 
-        if epoch % save_epochs == 0:
+        if epoch + 1 % save_epochs == 0:
             save_checkpoints(model=model, model_name=f'melmae_{epoch+1}', save_to=save_path)
 
     print('Finished Training.')

@@ -5,6 +5,11 @@ import einops
 
 
 class Patchify(nn.Module):
+
+    """
+    Patch audio segments using a rolling 1D convolution
+    """
+
     def __init__(self, d_model, patch_size, n_patches, dropout, in_channels):
         super().__init__()
         self.patcher = nn.Sequential(
@@ -33,6 +38,10 @@ class Patchify(nn.Module):
 
 class Encoder(nn.Module):
 
+    """
+    Learn meaningful info about the parts that the model CAN see
+    """
+
     def __init__(self, n_layers, d_model, n_heads, h_dims, dropout, activation, batch_first):
         super().__init__()
         self.encoder_layer = nn.TransformerEncoderLayer(
@@ -49,9 +58,6 @@ class Encoder(nn.Module):
             num_layers=n_layers,
         )
 
-    def transform(self, x):
-        pass
-
     def forward(self, x):
         out = self.encoder(x)
         return out
@@ -59,25 +65,43 @@ class Encoder(nn.Module):
 
 class Decoder(nn.Module):
 
-   def __init__(self):
-       super().__init__()
+    def __init__(self, n_layers, d_model, n_heads, h_dims, dropout, activation, batch_first):
+        super().__init__()
+        self.decoder_layer = nn.TransformerDecoderLayer(
+            d_model=d_model,
+            nhead=n_heads,
+            dim_feedforward=h_dims,
+            dropout=dropout,
+            activation=activation,
+            batch_first=batch_first
+        )
 
-   def forward(self, x):
-       pass
+        self.decoder = nn.TransformerDecoder(
+            decoder_layer=self.decoder_layer,
+            num_layers=n_layers
+        )
+
+    def forward(self, x, memory):
+        out = self.decoder(x, memory)
+        return out
     
 
 if __name__ == "__main__":
 
-    dummy_in = torch.randn(16, 1, 512)
+    memory_in = torch.randn(16, 1, 512)
+    decoder_in = torch.randn(16, 1, 512)
     enc = Encoder(n_layers=6, d_model=512, n_heads=8, h_dims=2048, dropout=0.2, activation='gelu', batch_first=True)
-    out = enc(dummy_in)
+    dec = Decoder(n_layers=6, d_model=512, n_heads=8, h_dims=2048, dropout=0.2, activation='gelu', batch_first=True)
+
+    memory = enc(memory_in)
+    out = dec(decoder_in, memory)
     print(out.shape)
 
-    patch = Patchify(512, 25, 1920, 0.2, 1)
-    dummy_in = torch.randn(4, 1, 48000)
-    x = patch(dummy_in)
-    print(x[0])
-    print(x.shape)
+    # patch = Patchify(512, 25, 1920, 0.2, 1)
+    # dummy_in = torch.randn(4, 1, 48000)
+    # x = patch(dummy_in)
+    # print(x[0])
+    # print(x.shape)
 
 
 

@@ -13,7 +13,7 @@ from dataset.dataset import AudioDataset
 from loop import train
 
 
-with open('/Users/inigoparra/Desktop/VisMAE/config.yaml', 'r') as f:
+with open('/Users/inigoparra/Desktop/PROJECTS/MAE/VisMAE/config.yaml', 'r') as f:
     config = yaml.safe_load(f)
 
 

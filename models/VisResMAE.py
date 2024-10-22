@@ -6,6 +6,7 @@ import torch.nn.functional as F
 
 import matplotlib.pyplot as plt 
 
+import yaml
 import os
 import sys
 sys.path.append(os.curdir)
@@ -21,10 +22,12 @@ class Encoder(nn.Module):
         self.in_layer = nn.Conv2d(in_channels=in_dims, out_channels=8, kernel_size=7, stride=1, padding=3)
         self.conv_1 = nn.Conv2d(in_channels=8, out_channels=16, kernel_size=kernel_size, stride=2, padding=1)
         self.conv_2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=kernel_size, stride=2, padding=1)
+        self.conv_3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=kernel_size, stride=2, padding=1)
 
         self.bn1 = nn.BatchNorm2d(num_features=8)
         self.bn2 = nn.BatchNorm2d(num_features=16)
         self.bn3 = nn.BatchNorm2d(num_features=32)
+        self.bn4 = nn.BatchNorm2d(num_features=64)
 
         self.dropout = nn.Dropout2d(0.2)
 
@@ -38,6 +41,7 @@ class Encoder(nn.Module):
         x = self.dropout(self.activation(self.bn1(self.in_layer(x))))
         x = self.dropout(self.activation(self.bn2(self.conv_1(x))))
         x = self.dropout(self.activation(self.bn3(self.conv_2(x))))
+        x = self.dropout(self.activation(self.bn4(self.conv_3(x))))
         return x
     
 
@@ -45,13 +49,15 @@ class Decoder(nn.Module):
 
     def __init__(self, out_dims, kernel_size, activation):
         super().__init__()
-
-        self.conv_1 = nn.ConvTranspose2d(in_channels=32, out_channels=16, kernel_size=kernel_size, stride=2, padding=1, output_padding=(1, 0))
-        self.conv_2 = nn.ConvTranspose2d(in_channels=16, out_channels=8, kernel_size=kernel_size, stride=2, padding=1, output_padding=(1, 0))
+        
+        self.conv_1 = nn.ConvTranspose2d(in_channels=64, out_channels=32, kernel_size=kernel_size, stride=2, padding=1, output_padding=(1, 0))
+        self.conv_2 = nn.ConvTranspose2d(in_channels=32, out_channels=16, kernel_size=kernel_size, stride=2, padding=1, output_padding=(1, 0))
+        self.conv_3 = nn.ConvTranspose2d(in_channels=16, out_channels=8, kernel_size=kernel_size, stride=2, padding=1, output_padding=(1, 0))
         self.out_layer = nn.Conv2d(in_channels=8, out_channels=out_dims, kernel_size=7, stride=1, padding=3)
         
-        self.bn1 = nn.BatchNorm2d(num_features=16)
-        self.bn2 = nn.BatchNorm2d(num_features=8)
+        self.bn1 = nn.BatchNorm2d(num_features=32)
+        self.bn2 = nn.BatchNorm2d(num_features=16)
+        self.bn3 = nn.BatchNorm2d(num_features=8)
 
         self.dropout = nn.Dropout2d(0.2)
 
@@ -64,6 +70,7 @@ class Decoder(nn.Module):
     def forward(self, x):
         x = self.dropout(self.activation(self.bn1(self.conv_1(x))))
         x = self.dropout(self.activation(self.bn2(self.conv_2(x))))
+        x = self.dropout(self.activation(self.bn3(self.conv_3(x))))
         x = torch.tanh(self.out_layer(x))
         return x
 
@@ -73,11 +80,11 @@ class Embedding(nn.Module):
     def __init__(self, kernel_size, activation):
         super().__init__()
 
-        self.embedding_1 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=kernel_size, stride=1, padding=1)
-        self.embedding_2 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=kernel_size, stride=1, padding=1)
+        self.embedding_1 = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=kernel_size, stride=1, padding=1)
+        self.embedding_2 = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=kernel_size, stride=1, padding=1)
         
-        self.bn_1 = nn.BatchNorm2d(num_features=32)
-        self.bn_2 = nn.BatchNorm2d(num_features=32)
+        self.bn_1 = nn.BatchNorm2d(num_features=64)
+        self.bn_2 = nn.BatchNorm2d(num_features=64)
 
         assert activation in ('relu', 'leaky'), "Invalid activation. Use 'relu' or 'leaky'"
         self.activation = (
@@ -123,19 +130,18 @@ class VisResMAE(nn.Module):
 
 if __name__ == '__main__':
 
-    sample_path = '/Users/inigoparra/Desktop/Datasets/tone_perfect_wav_16/sun3_MV3_MP3_16.wav'
+    with open('/Users/inigoparra/Desktop/PROJECTS/MAE/VisMAE/config.yaml', 'r') as f:
+        config = yaml.safe_load(f)
+
+    sample_path = '/Users/inigoparra/Desktop/Datasets/speech/7059-77900-0003.flac'
     sample, sr = torchaudio.load(sample_path)
+    sample = sample[:, :64000]
+    print(f'Original samples: {sample.size(1)}')
 
     transforms = Compose([
-        torchaudio.transforms.Resample(orig_freq=sr, new_freq=8000),
-        torchaudio.transforms.MelSpectrogram(
-            sample_rate=8000,
-            n_fft=256,                 # Small window for better temporal precision
-            hop_length=64,             # High overlap to capture temporal structure
-            n_mels=64,                 # Mel bands (128 is common for speech)
-            f_min=60,                  # Capture low-frequency components like voice
-            f_max=4000,                # Respect Nyquist limit at 8 kHz sample rate
-        )
+        torchaudio.transforms.Resample(orig_freq=sr, new_freq=16000),
+        torchaudio.transforms.MelSpectrogram(**config['spectrogram_config']),
+        torchaudio.transforms.AmplitudeToDB()
     ])
 
     original = transforms(sample)
@@ -147,26 +153,26 @@ if __name__ == '__main__':
     x, emb = autoencoder(original)
     print(f'Predicted Shape: {x.shape}')
 
-    emb_transform = nn.Conv2d(in_channels=32, out_channels=1, kernel_size=3, stride=1)
+    emb_transform = nn.Conv2d(in_channels=64, out_channels=1, kernel_size=3, stride=1)
     emb = emb_transform(emb)
 
     def plot_pass(tensor_a, tensor_b, tensor_c):
 
         plt.figure(figsize=(12, 6))
 
-        plt.subplot(1, 3, 1)
+        plt.subplot(3, 1, 1)
         plt.imshow(tensor_a.squeeze().detach().numpy(), cmap='magma', origin='lower')
         plt.title('Mel Spectrogram - Original')
         plt.xlabel('Time')
         plt.ylabel('Mel Frequency')
 
-        plt.subplot(1, 3, 2)
+        plt.subplot(3, 1, 2)
         plt.imshow(tensor_b.squeeze().detach().numpy(), cmap='magma', origin='lower')
         plt.title('Mel Spectrogram - Processed')
         plt.xlabel('Time')
         plt.ylabel('Mel Frequency')
 
-        plt.subplot(1, 3, 3)
+        plt.subplot(3, 1, 3)
         plt.imshow(tensor_c.squeeze().detach().numpy(), cmap='magma', origin='lower')
         plt.title('Latent Representation')
         plt.xlabel('Time')
@@ -176,3 +182,5 @@ if __name__ == '__main__':
         plt.show()
 
     plot_pass(original, x, emb)
+
+    

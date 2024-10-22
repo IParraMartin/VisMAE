@@ -77,7 +77,7 @@ class Encoder(nn.Module):
 
     def forward(self, x):
         # Step 1: MASK PATCHES
-
+        
         out = self.encoder(x)
         return out
     

@@ -23,7 +23,7 @@ class Patchify(nn.Module):
            nn.Flatten(2)
         )
 
-        self.cls_token = nn.Parameter(torch.randn(size=(1, 1, d_model)), requires_grad=True)
+        self.cls_token = torch.nn.Parameter(torch.zeros(1, 1, d_model))
         self.position_embeddings = nn.Parameter(torch.randn(size=(1, n_patches+1, d_model)), requires_grad=True)
         self.dropout = nn.Dropout(p=dropout)
 
@@ -96,47 +96,13 @@ class AudiT(nn.Module):
 
     def __init__(self, patch_size, n_patches, in_channels, n_layers, d_model, n_heads, h_dims, dropout, activation, batch_first):
         super().__init__()
-        self.patchify = Patchify(
-            d_model=d_model, 
-            patch_size=patch_size, 
-            n_patches=n_patches, 
-            dropout=dropout, 
-            in_channels=in_channels
-        )
 
-        self.encoder = Encoder(
-            n_layers=n_layers, 
-            d_model=d_model, 
-            n_heads=n_heads, 
-            h_dims=h_dims,
-            dropout=dropout,
-            activation=activation,
-            batch_first=batch_first
-        )
-
-        self.encoder = Decoder(
-            n_layers=n_layers, 
-            d_model=d_model, 
-            n_heads=n_heads, 
-            h_dims=h_dims,
-            dropout=dropout,
-            activation=activation,
-            batch_first=batch_first
-        )
-
-        self.mask_token = nn.Parameter(torch.randn(1, 1, d_model))
+        self.patchify = Patchify(d_model, patch_size, n_patches, dropout, in_channels)
+        self.encoder = Encoder(n_layers, d_model, n_heads, h_dims, dropout, activation, batch_first)
+        self.encoder = Decoder(n_layers, d_model, n_heads, h_dims, dropout, activation, batch_first)
 
     def forward(self, x, mask_ratio):
-        x = self.patchify(x)
-        batch, seq_len, _ = x.shape
-
-        n_masked = int(mask_ratio * seq_len)
-        rand_idx = torch.randperm(seq_len)
-        masked_idx = rand_idx[:n_masked]
-        visible_idx = rand_idx[n_masked:]
-
-        x_visible = x[:, visible_idx, :]
-        encoded = self.encoder(x_visible)
+        pass
 
 
 
@@ -144,21 +110,21 @@ class AudiT(nn.Module):
 
 if __name__ == "__main__":
 
-    memory_in = torch.randn(16, 1, 512)
-    decoder_in = torch.randn(16, 1, 512)
+    patch = Patchify(512, 50, 960, 0.2, 1)
     enc = Encoder(n_layers=6, d_model=512, n_heads=8, h_dims=2048, dropout=0.2, activation='gelu', batch_first=True)
     dec = Decoder(n_layers=6, d_model=512, n_heads=8, h_dims=2048, dropout=0.2, activation='gelu', batch_first=True)
 
-    memory = enc(memory_in)
-    out = dec(decoder_in, memory)
+    x, _ = torchaudio.load('/Users/inigoparra/Desktop/Datasets/speech/7059-77900-0003.flac')
+    x = x[:, 0:48000].unsqueeze(1)
+    patches = patch(x)
+    print(f'Patchified input: {patches.shape}')
 
-    patch = Patchify(512, 50, 960, 0.2, 1)
-    audio, sr = torchaudio.load('/Users/inigoparra/Desktop/Datasets/speech/7059-77900-0003.flac')
-    signal = audio[:, 0:48000].unsqueeze(1)
-    print(signal.shape)
+    
 
-    x = patch(signal)
-    print(x.shape)
+    # shuffled = torch.randperm()
+    
+
+    
 
     def visualize_embeddings(tensor):
         plt.imshow(tensor[0].squeeze().detach().numpy(), cmap='magma', origin='lower')

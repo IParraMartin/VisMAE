@@ -34,7 +34,7 @@ class Encoder(nn.Module):
         assert activation in ('relu', 'leaky'), "Invalid activation. Use 'relu' or 'leaky'"
         self.activation = (
             nn.ReLU() if activation == 'relu' 
-            else nn.LeakyReLU(negative_slope=0.1)
+            else nn.LeakyReLU(negative_slope=0.2)
         )
 
     def forward(self, x):
@@ -64,7 +64,7 @@ class Decoder(nn.Module):
         assert activation in ('relu', 'leaky'), "Invalid activation. Use 'relu' or 'leaky'"
         self.activation = (
             nn.ReLU() if activation == 'relu' 
-            else nn.LeakyReLU(negative_slope=0.1)
+            else nn.LeakyReLU(negative_slope=0.2)
         )
 
     def forward(self, x):
@@ -89,7 +89,7 @@ class Embedding(nn.Module):
         assert activation in ('relu', 'leaky'), "Invalid activation. Use 'relu' or 'leaky'"
         self.activation = (
             nn.ReLU() if activation == 'relu' 
-            else nn.LeakyReLU(negative_slope=0.1)
+            else nn.LeakyReLU(negative_slope=0.2)
         )
     
     def forward(self, x):

@@ -130,6 +130,10 @@ class VisResMAE(nn.Module):
 
 if __name__ == '__main__':
 
+    from utilities.mask import *
+    
+    masking = SpectrogramMasking(mask_ratio=0.5, patch_size=16)
+
     with open('/Users/inigoparra/Desktop/PROJECTS/MAE/VisMAE/config.yaml', 'r') as f:
         config = yaml.safe_load(f)
 
@@ -144,14 +148,15 @@ if __name__ == '__main__':
         torchaudio.transforms.AmplitudeToDB()
     ])
 
-    original = transforms(sample)
-
-    original = original.unsqueeze(1)
-    print(f'Original Shape: {original.shape}')
+    original_spec = transforms(sample)
+    original_spec = original_spec.unsqueeze(1)
+    mask_spec, mask = masking(original_spec.clone())
 
     autoencoder = VisResMAE(in_dims=1, out_dims=1, kernel_size=3, activation='leaky', alpha=0.1)
-    x, emb = autoencoder(original)
-    print(f'Predicted Shape: {x.shape}')
+    x, emb = autoencoder(mask_spec)
+
+    loss = masked_mse_loss(x, original_spec, mask)
+    print(loss.item())
 
     emb_transform = nn.Conv2d(in_channels=64, out_channels=1, kernel_size=3, stride=1)
     emb = emb_transform(emb)
@@ -181,6 +186,6 @@ if __name__ == '__main__':
         plt.tight_layout()
         plt.show()
 
-    plot_pass(original, x, emb)
+    plot_pass(mask_spec, x, emb)
 
     

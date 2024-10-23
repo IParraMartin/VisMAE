@@ -26,7 +26,7 @@ def save_checkpoints(model, model_name, save_to):
    os.makedirs(os.path.join(save_to, 'checkpoints'), exist_ok=True)
    torch.save(model.state_dict(), os.path.join(save_to, 'checkpoints', f'{model_name}.pt'))
 
-masking = SpectrogramMasking(mask_ratio=0.75, patch_size=16)
+masking = SpectrogramMasking(mask_ratio=0.5, patch_size=16)
 
 
 def train(device, model, epochs, train_dataloader, val_dataloader, optim, log, save_epochs, save_path):

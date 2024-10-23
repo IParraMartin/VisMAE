@@ -40,7 +40,7 @@ dataset = AudioDataset(
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'mps')
 autoencoder = VisResMAE(**config['model_config'])
-optim = torch.optim.Adam(
+optim = torch.optim.AdamW(
     params=autoencoder.parameters(), 
     lr=config['lr'],
     betas=(config['beta_1'], config['beta_2']),

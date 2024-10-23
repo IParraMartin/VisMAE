@@ -27,13 +27,12 @@ spectrogram_config:
   mel_scale: 'slaney'
   pad_mode: 'reflect'
 
-epochs: 500
-batch_size: 32
+epochs: 1000
+batch_size: 128
 lr: 0.0001
 beta_1: 0.90
 beta_2: 0.99
 weight_decay: 0.01
-save_epochs: 5
 
 save_path: '/Users/inigoparra/Desktop/VisMAE'
 save_epochs: 20

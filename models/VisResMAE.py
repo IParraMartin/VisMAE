@@ -132,7 +132,7 @@ if __name__ == '__main__':
 
     from utilities.mask import *
     
-    masking = SpectrogramMasking(mask_ratio=0.5, patch_size=16)
+    masking = SpectrogramMasking(mask_ratio=0.75, patch_size=16)
 
     with open('/Users/inigoparra/Desktop/PROJECTS/MAE/VisMAE/config.yaml', 'r') as f:
         config = yaml.safe_load(f)
@@ -161,24 +161,31 @@ if __name__ == '__main__':
     emb_transform = nn.Conv2d(in_channels=64, out_channels=1, kernel_size=3, stride=1)
     emb = emb_transform(emb)
 
-    def plot_pass(tensor_a, tensor_b, tensor_c):
+    def plot_pass(tensor_a, tensor_b, tensor_c, tensor_d):
 
         plt.figure(figsize=(12, 6))
 
-        plt.subplot(3, 1, 1)
+        plt.subplot(4, 1, 1)
         plt.imshow(tensor_a.squeeze().detach().numpy(), cmap='magma', origin='lower')
         plt.title('Mel Spectrogram - Original')
         plt.xlabel('Time')
         plt.ylabel('Mel Frequency')
 
-        plt.subplot(3, 1, 2)
+        plt.subplot(4, 1, 2)
         plt.imshow(tensor_b.squeeze().detach().numpy(), cmap='magma', origin='lower')
-        plt.title('Mel Spectrogram - Processed')
+        plt.title('Mel Spectrogram - Masked (75%)')
         plt.xlabel('Time')
         plt.ylabel('Mel Frequency')
 
-        plt.subplot(3, 1, 3)
+
+        plt.subplot(4, 1, 3)
         plt.imshow(tensor_c.squeeze().detach().numpy(), cmap='magma', origin='lower')
+        plt.title('Mel Spectrogram - Processed (single pass)')
+        plt.xlabel('Time')
+        plt.ylabel('Mel Frequency')
+
+        plt.subplot(4, 1, 4)
+        plt.imshow(tensor_d.squeeze().detach().numpy(), cmap='magma', origin='lower')
         plt.title('Latent Representation')
         plt.xlabel('Time')
         plt.ylabel('Mel Frequency')
@@ -186,6 +193,6 @@ if __name__ == '__main__':
         plt.tight_layout()
         plt.show()
 
-    plot_pass(mask_spec, x, emb)
+    plot_pass(original_spec, mask_spec, x, emb)
 
     

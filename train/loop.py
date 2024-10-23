@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from PIL import Image
 import numpy as np
 
-import random
+from utilities.mask import *
 import io
 import sys
 import os
@@ -15,7 +15,7 @@ sys.path.append(os.curdir)
 
 def tensor_to_image(tensor):
     fig, ax = plt.subplots(figsize=(12, 4))
-    ax.imshow(tensor, aspect='auto', origin='lower')
+    ax.imshow(tensor, aspect='auto', origin='lower', cmap='magma')
     ax.axis('off')
     buf = io.BytesIO()
     plt.savefig(buf, format='png')
@@ -27,7 +27,7 @@ def save_checkpoints(model, model_name, save_to):
    os.makedirs(os.path.join(save_to, 'checkpoints'), exist_ok=True)
    torch.save(model.state_dict(), os.path.join(save_to, 'checkpoints', f'{model_name}.pt'))
 
-mask = torchaudio.transforms.TimeMasking(time_mask_param=150, p=1.0)
+masking = SpectrogramMasking(mask_ratio=0.5, patch_size=16)
 
 
 def train(device, model, epochs, train_dataloader, val_dataloader, criterion, optim, log, save_epochs, save_path):
@@ -51,9 +51,10 @@ def train(device, model, epochs, train_dataloader, val_dataloader, criterion, op
         train_steps = 0
         for idx_batch, signal in enumerate(train_dataloader):
             original_signal = signal.to(device)
-            masked_signal = mask(original_signal.clone())
+            masked_signal, mask = masking(original_signal.clone())
             out, _ = model(masked_signal)
-            loss = criterion(out, original_signal)
+
+            loss = masked_mse_loss(out, original_signal, mask)
             total_train_loss += loss.item()
 
             optim.zero_grad()
@@ -79,9 +80,10 @@ def train(device, model, epochs, train_dataloader, val_dataloader, criterion, op
         with torch.no_grad():
             for idx_batch, signal in enumerate(val_dataloader):
                 original_signal = signal.to(device)
-                masked_signal = mask(original_signal.clone())
+                masked_signal, mask = masking(original_signal.clone())
                 out, _ = model(masked_signal)
-                loss = criterion(out, original_signal)
+                
+                loss = masked_mse_loss(out, original_signal, mask)
                 total_val_loss += loss.item()
 
                 if (idx_batch + 1) % 5 == 0:

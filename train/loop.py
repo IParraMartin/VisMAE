@@ -1,5 +1,4 @@
 import torch
-import torchaudio
 
 import wandb
 import matplotlib.pyplot as plt
@@ -30,13 +29,13 @@ def save_checkpoints(model, model_name, save_to):
 masking = SpectrogramMasking(mask_ratio=0.5, patch_size=16)
 
 
-def train(device, model, epochs, train_dataloader, val_dataloader, criterion, optim, log, save_epochs, save_path):
+def train(device, model, epochs, train_dataloader, val_dataloader, optim, log, save_epochs, save_path):
 
     print(f'\nLogging to wandb: {log}')
     if log:
         global_step = 0
         wandb.init(project='VisResAE')
-        wandb.watch(model, criterion, log='all', log_freq=1)
+        wandb.watch(model, log='all', log_freq=1)
 
     print('\nTraining model...')
     model.to(device)
@@ -82,7 +81,7 @@ def train(device, model, epochs, train_dataloader, val_dataloader, criterion, op
                 original_signal = signal.to(device)
                 masked_signal, mask = masking(original_signal.clone())
                 out, _ = model(masked_signal)
-                
+
                 loss = masked_mse_loss(out, original_signal, mask)
                 total_val_loss += loss.item()
 

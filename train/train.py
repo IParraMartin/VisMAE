@@ -39,7 +39,6 @@ dataset = AudioDataset(
 )
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'mps')
-criterion = torch.nn.MSELoss()
 autoencoder = VisResMAE(**config['model_config'])
 optim = torch.optim.Adam(
     params=autoencoder.parameters(), 
@@ -60,7 +59,6 @@ train(
     epochs=config['epochs'],
     train_dataloader=train_dataloader,
     val_dataloader=val_dataloader,
-    criterion=criterion,
     optim=optim,
     log=config['log'],
     save_epochs=config['save_epochs'],
